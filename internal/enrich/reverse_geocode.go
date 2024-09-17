@@ -1,29 +1,35 @@
 package enrich
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 type Client struct {
 	httpClient *http.Client
 	url        string
+	rl         rate.Limiter
 }
 
-func NewClient(url string) Client {
-	return Client{
+func NewClient(url string) *Client {
+	return &Client{
 		httpClient: &http.Client{
-			Timeout: 5 * time.Second,
+			Transport: &http.Transport{
+				MaxIdleConnsPerHost: 20,
+			},
+			Timeout: 10 * time.Second,
 		},
 		url: url,
+		rl:  *rate.NewLimiter(rate.Every(150*time.Millisecond), 1),
 	}
 }
 
-func (c Client) reverseGeocode(lat, long string) (string, string) {
-
+func (c *Client) reverseGeocode(lat, long string) (string, string, error) {
 	type Address struct {
 		City        string `json:"city"`
 		CountryName string `json:"countryName"`
@@ -39,31 +45,34 @@ func (c Client) reverseGeocode(lat, long string) (string, string) {
 
 	latlong := lat + "," + long
 	url := strings.Replace(c.url, "{lat&long}", latlong, -1)
+
 	reqeust, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		//TODO
-		//Handle Error
-		fmt.Println("err creating GET req: ", err)
+		return "", "", err
+	}
+
+	ctx := context.Background()
+	err = c.rl.Wait(ctx) // This is a blocking call. Honors the rate limit
+	if err != nil {
+		return "", "", err
 	}
 
 	res, err := c.httpClient.Do(reqeust)
 	if err != nil {
-		//TODO
-		//Handle error
-		fmt.Println("err with call to google API: ", err)
+		return "", "", err
 	}
+
+	defer res.Body.Close()
 
 	var data GeoLocate
 	err = json.NewDecoder(res.Body).Decode(&data)
 	if err != nil {
-		//TODO
-		//Handle error
-		fmt.Println("couldnt decode response: ", err)
+		return "", "", err
 	}
 
 	if len(data.Items) == 0 {
-		return "", ""
+		return "", "", nil
 	}
 	// Decoding the city
-	return data.Items[0].Address.CountryName, data.Items[0].Address.City
+	return data.Items[0].Address.CountryName, data.Items[0].Address.City, nil
 }

@@ -2,7 +2,6 @@ package csv
 
 import (
 	"encoding/csv"
-	"fmt"
 	"log"
 	"os"
 	"popsa_tech_test/internal/model"
@@ -17,6 +16,7 @@ var (
 // ReadCSV returns a slice of all the albums
 func ReadCSV(c chan []model.RawAlbumData) {
 
+	defer close(c)
 	//Find the names of all albums in /data
 	fileNames, err := os.ReadDir(dir)
 	if err != nil {
@@ -24,12 +24,11 @@ func ReadCSV(c chan []model.RawAlbumData) {
 	}
 
 	for _, fileName := range fileNames {
-		fmt.Println("got filenames ", fileName)
+		log.Println("got filenames ", fileName)
 		file, err := os.Open(dir + fileName.Name())
 		if err != nil {
-			//TODO
-			//Handle error
-			fmt.Println("error 1, ", err)
+			log.Println("ERROR: failed to open files, err: ", err)
+			continue
 		}
 
 		defer file.Close()
@@ -37,9 +36,8 @@ func ReadCSV(c chan []model.RawAlbumData) {
 		reader := csv.NewReader(file)
 		data, err := reader.ReadAll()
 		if err != nil {
-			//TODO
-			//Handle error
-			fmt.Println("error 2, ", err)
+			log.Println("ERROR: failed to read files, err: ", err)
+			continue
 		}
 
 		// index
@@ -48,7 +46,13 @@ func ReadCSV(c chan []model.RawAlbumData) {
 		// 2 = longitude
 		album := make([]model.RawAlbumData, len(data))
 		for index, metaData := range data {
-			timeTaken := formatTime(metaData[0])
+			timeTaken, err := formatTime(metaData[0])
+			if err != nil {
+				//TODO
+				// do we want to store incorrect meta data?
+				log.Printf("ERROR: failed to format time: %s, with err: %v", timeTaken, err)
+				continue
+			}
 			raw := model.RawAlbumData{
 				FileName: fileName.Name(),
 				Taken:    timeTaken,
@@ -59,11 +63,9 @@ func ReadCSV(c chan []model.RawAlbumData) {
 		}
 		c <- album
 	}
-
-	close(c)
 }
 
-func formatTime(t string) time.Time {
+func formatTime(t string) (time.Time, error) {
 	// remove any space at start or end of the time string
 	t = strings.TrimRight(t, " ")
 	t = strings.TrimLeft(t, " ")
@@ -78,10 +80,8 @@ func formatTime(t string) time.Time {
 
 	timeTaken, err := time.Parse("2006-01-02T15:04:05Z", t)
 	if err != nil {
-		//TODO
-		//Handle error
-		fmt.Println("got err: ", err)
+		return time.Time{}, err
 	}
 
-	return timeTaken
+	return timeTaken, nil
 }

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"popsa_tech_test/internal/csv"
 	"popsa_tech_test/internal/enrich"
 	"popsa_tech_test/internal/generate"
@@ -18,9 +18,6 @@ func main() {
 	for {
 		album, ok := <-c
 		if !ok {
-			//TODO
-			// Proper log here
-			fmt.Println("finished reading files")
 			break
 		}
 
@@ -28,7 +25,7 @@ func main() {
 		go func(album []model.RawAlbumData, wg *sync.WaitGroup) {
 			enrichedAlbum := enrich.EnrichAlbumMetaData(album)
 			titles := generate.GenerateTitles(enrichedAlbum)
-			fmt.Printf("Generated titles for album %s:\n %s\n", enrichedAlbum.FileName, titles)
+			log.Printf("Generated titles for album %s:\n %s\n", enrichedAlbum.FileName, titles)
 			wg.Done()
 		}(album, &wg)
 	}

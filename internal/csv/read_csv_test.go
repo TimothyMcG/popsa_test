@@ -45,7 +45,10 @@ func TestFormatTime(t *testing.T) {
 	testCases := []string{"2019-10-31T10:50:16Z", "2019-10-31 10:50:16Z", "2019-10-31T10:50:16", "2019-10-31 10:50:16"}
 
 	for _, test := range testCases {
-		actual := formatTime(test)
+		actual, err := formatTime(test)
+		if err != nil {
+			t.Errorf("error running formatTime, err: %v", err)
+		}
 		if actual != expected {
 			t.Errorf("expected: %s got: %s", expected, actual)
 		}

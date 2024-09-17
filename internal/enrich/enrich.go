@@ -1,15 +1,17 @@
 package enrich
 
 import (
+	"log"
 	"popsa_tech_test/internal/model"
 	"time"
 )
 
 var (
-	// stored as a config/env variable?
+	api_key = "DnyeNV12aWOOPYbDZz25EtrLnyDbTNuz6Vzyz4SOTx8"
+	url     = "https://revgeocode.search.hereapi.com/v1/revgeocode?at={lat&long}&lang=en-US&apiKey=" + api_key
 
-	APIKEY     = "DnyeNV12aWOOPYbDZz25EtrLnyDbTNuz6Vzyz4SOTx8"
-	url        = "https://revgeocode.search.hereapi.com/v1/revgeocode?at={lat&long}&lang=en-US&apiKey=" + APIKEY
+	//batchURL = "https://multi-revgeocode.search.hereapi.com/v1/multi-revgeocode?lang=en-US&apiKey=" + APIKEY
+
 	weatherMap = map[int]string{
 		1:  "rain",
 		2:  "cold",
@@ -22,7 +24,6 @@ var (
 )
 
 func EnrichAlbumMetaData(album []model.RawAlbumData) model.AlbumMetaData {
-
 	var metaData model.AlbumMetaData
 	metaData.FirstPic = time.Now()
 	metaData.FileName = album[0].FileName
@@ -32,10 +33,13 @@ func EnrichAlbumMetaData(album []model.RawAlbumData) model.AlbumMetaData {
 	for _, v := range album {
 
 		// Find Country and City info
-		country, city := client.reverseGeocode(v.Lat, v.Long)
+		country, city, err := client.reverseGeocode(v.Lat, v.Long)
+		if err != nil {
+			log.Println("ERROR: failed to call reverse geocode API, err: ", err)
+			continue
+		}
 		if country == "" && city == "" {
-			//TODO
-			//print error
+			log.Printf("WARN: reverse geocode returned empty city and country. latitude:%s, longitude:%s\n", v.Lat, v.Long)
 			continue
 		}
 
