@@ -1,4 +1,4 @@
-# Sky tech test
+# Popsa test
 
 This project is a solution to the practical exercise provided by Popsa. It is a single service that reads in CSV files, each file is considered an album of photos metadata. We use the metadata to reverse geolocate where the photos were taken using here.coms API. Finally it generates appropriate titles based off this data. 
 
