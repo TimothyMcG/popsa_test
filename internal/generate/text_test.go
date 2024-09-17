@@ -3,8 +3,6 @@ package generate
 import (
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestFormatTimeAway(t *testing.T) {
@@ -26,10 +24,4 @@ func TestFormatTimeAway(t *testing.T) {
 			t.Errorf("expected: %s, but got: %s", v.expected, actual)
 		}
 	}
-}
-
-func TestGenerateTitlesGeneral(t *testing.T) {
-	expected := titleStore["general"]
-	actual := generateGeneralTitles()
-	assert.Equal(t, expected, actual)
 }

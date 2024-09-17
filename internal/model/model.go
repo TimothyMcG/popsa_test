@@ -1,14 +1,16 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type AlbumMetaData struct {
-	FileName  string
-	FirstPic  time.Time
-	LastPic   time.Time
-	Cities    []string
-	Countries []string
-	Weather   string
+	FileName string
+	FirstPic time.Time
+	LastPic  time.Time
+	Cities   map[string]CityData
+	CityKeys []string
+	Country  string
 }
 
 // RawAlbum data pulled from CSVs
@@ -19,15 +21,8 @@ type RawAlbumData struct {
 	Long     string
 }
 
-type GeoLocate struct {
-	Items []GeoLocateData `json:"items"`
-}
-
-type GeoLocateData struct {
-	Address Address `josn:"address"`
-}
-
-type Address struct {
-	City        string `json:"city"`
-	CountryName string `json:"countryName"`
+type CityData struct {
+	Start   time.Time
+	End     time.Time
+	Weather string
 }

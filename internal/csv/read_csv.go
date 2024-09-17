@@ -10,18 +10,22 @@ import (
 	"time"
 )
 
+var (
+	dir = "./data/"
+)
+
 // ReadCSV returns a slice of all the albums
 func ReadCSV(c chan []model.RawAlbumData) {
 
 	//Find the names of all albums in /data
-	fileNames, err := os.ReadDir("./data/")
+	fileNames, err := os.ReadDir(dir)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	for _, fileName := range fileNames {
 		fmt.Println("got filenames ", fileName)
-		file, err := os.Open("./data/" + fileName.Name())
+		file, err := os.Open(dir + fileName.Name())
 		if err != nil {
 			//TODO
 			//Handle error

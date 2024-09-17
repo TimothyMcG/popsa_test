@@ -1,17 +1,15 @@
 package enrich
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/http"
 	"popsa_tech_test/internal/model"
 	"time"
 )
 
 var (
 	// stored as a config/env variable?
-	APIKEY = "DnyeNV12aWOOPYbDZz25EtrLnyDbTNuz6Vzyz4SOTx8"
 
+	APIKEY     = "DnyeNV12aWOOPYbDZz25EtrLnyDbTNuz6Vzyz4SOTx8"
+	url        = "https://revgeocode.search.hereapi.com/v1/revgeocode?at={lat&long}&lang=en-US&apiKey=" + APIKEY
 	weatherMap = map[int]string{
 		1:  "rain",
 		2:  "cold",
@@ -28,30 +26,43 @@ func EnrichAlbumMetaData(album []model.RawAlbumData) model.AlbumMetaData {
 	var metaData model.AlbumMetaData
 	metaData.FirstPic = time.Now()
 	metaData.FileName = album[0].FileName
+	metaData.Cities = make(map[string]model.CityData)
 
-	// store countries and cities if unique
-	var countries []string
-	var cities []string
-	seen := make(map[string]bool)
-
+	client := NewClient(url)
 	for _, v := range album {
 
 		// Find Country and City info
-		country, city := reverseGeocode(v.Lat, v.Long)
+		country, city := client.reverseGeocode(v.Lat, v.Long)
 		if country == "" && city == "" {
 			//TODO
 			//print error
 			continue
 		}
 
-		if !seen[country] {
-			seen[country] = true
-			countries = append(countries, country)
+		// Save cities into map
+		cityData, found := metaData.Cities[city]
+		if found {
+			if v.Taken.Before(cityData.Start) {
+				cityData.Start = v.Taken
+				cityData.Weather = weatherData(cityData.Start)
+				metaData.Cities[city] = cityData
+			}
+
+			if v.Taken.After(cityData.End) {
+				cityData.End = v.Taken
+				metaData.Cities[city] = cityData
+			}
+		} else {
+			metaData.Cities[city] = model.CityData{
+				Start:   v.Taken,
+				End:     v.Taken,
+				Weather: weatherData(v.Taken),
+			}
+			metaData.CityKeys = append(metaData.CityKeys, city)
 		}
 
-		if !seen[city] {
-			seen[city] = true
-			cities = append(cities, city)
+		if metaData.Country == "" {
+			metaData.Country = country
 		}
 
 		// Time of first and last picture
@@ -64,52 +75,7 @@ func EnrichAlbumMetaData(album []model.RawAlbumData) model.AlbumMetaData {
 		}
 	}
 
-	// generate weather "report" we can imagine this
-	// would be a call to an external api that returns
-	// weather data
-	weather := weatherData(metaData.FirstPic)
-	if weather != "" {
-		metaData.Weather = weather
-	}
-
-	// Save cities and countries
-	metaData.Cities = cities
-	metaData.Countries = countries
 	return metaData
-}
-
-func reverseGeocode(lat, long string) (string, string) {
-
-	latlong := lat + "," + long
-	url := "https://revgeocode.search.hereapi.com/v1/revgeocode?at=" + latlong + "&lang=en-US&apiKey=" + APIKEY
-
-	reqeust, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		//TODO
-		//Handle Error
-		fmt.Println("err creating GET req: ", err)
-	}
-
-	res, err := http.DefaultClient.Do(reqeust)
-	if err != nil {
-		//TODO
-		//Handle error
-		fmt.Println("err with call to google API: ", err)
-	}
-
-	var data model.GeoLocate
-	err = json.NewDecoder(res.Body).Decode(&data)
-	if err != nil {
-		//TODO
-		//Handle error
-		fmt.Println("couldnt decode response: ", err)
-	}
-
-	if len(data.Items) == 0 {
-		return "", ""
-	}
-	// Decoding the city
-	return data.Items[0].Address.CountryName, data.Items[0].Address.City
 }
 
 func weatherData(start time.Time) string {
