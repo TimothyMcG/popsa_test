@@ -2,17 +2,18 @@ package main
 
 import (
 	"log"
-	"popsa_tech_test/internal/csv"
+
 	"popsa_tech_test/internal/enrich"
 	"popsa_tech_test/internal/generate"
 	"popsa_tech_test/internal/model"
+	"popsa_tech_test/internal/read"
 	"sync"
 )
 
 func main() {
 
 	c := make(chan []model.RawAlbumData, 5)
-	go csv.ReadCSV(c)
+	go read.ReadCSV(c)
 
 	var wg sync.WaitGroup
 	for {

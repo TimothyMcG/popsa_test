@@ -1,4 +1,4 @@
-package csv
+package read
 
 import (
 	"popsa_tech_test/internal/model"

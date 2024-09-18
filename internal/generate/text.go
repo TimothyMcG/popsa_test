@@ -54,10 +54,12 @@ func generateLocationTitles(album model.AlbumMetaData, t string) []string {
 
 		}
 		titles = append(titles, fmt.Sprintf("You stole my heart %s\n", album.CityKeys[0]))
+		return titles
 	}
 
 	if len(album.CityKeys) == 2 {
 		titles = append(titles, fmt.Sprintf("A tale of two halves %s and %s\n", album.CityKeys[0], album.CityKeys[1]))
+		return titles
 	}
 
 	buildString := ""
