@@ -7,7 +7,7 @@ This project is a solution to the practical exercise provided by Popsa. It is a 
 You can manage and run this solution using the following terminal commands from the repository root:
 
 - `make run` - Run the service
-
+- `make test` - Run tests
 
 ## Implementation
 
